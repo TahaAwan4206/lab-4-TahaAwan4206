@@ -1,7 +1,7 @@
 const express = require("express");
 const verifyToken = require("../middleware/auth").verifyToken;
 const List = require("../models/List");
-const Destination = require("../models/Destination");
+const Review = require("../models/Review");
 
 const router = express.Router();
 
@@ -16,43 +16,17 @@ router.get("/lists", verifyToken, async (req, res) => {
     }
 });
 
-router.get("/lists/:id", verifyToken, async (req, res) => {
-    const userId = req.user.id;
-    const { id } = req.params;
-
-    try {
-        const list = await List.findById(id).populate("destinations");
-        if (!list) return res.status(404).json({ error: "List not found." });
-
-        if (list.owner.toString() !== userId) {
-            return res.status(403).json({ error: "You do not have permission to view this list." });
-        }
-
-        res.json(list);
-    } catch (err) {
-        res.status(500).json({ error: "Failed to fetch list." });
-    }
-});
-
 router.post("/lists", verifyToken, async (req, res) => {
     const userId = req.user.id;
     const { name, description, destinations, visibility } = req.body;
 
     try {
         const existingList = await List.findOne({ name, owner: userId });
-        if (existingList) {
-            return res.status(400).json({ error: "A list with this name already exists." });
-        }
+        if (existingList) return res.status(400).json({ error: "List already exists." });
 
-        const newList = new List({
-            name,
-            description,
-            destinations,
-            visibility,
-            owner: userId
-        });
-
+        const newList = new List({ name, description, destinations, visibility, owner: userId });
         await newList.save();
+
         res.status(201).json({ message: "List created successfully.", newList });
     } catch (err) {
         res.status(500).json({ error: "Failed to create list." });
@@ -67,10 +41,7 @@ router.put("/lists/:id", verifyToken, async (req, res) => {
     try {
         const list = await List.findById(id);
         if (!list) return res.status(404).json({ error: "List not found." });
-
-        if (list.owner.toString() !== userId) {
-            return res.status(403).json({ error: "You do not have permission to edit this list." });
-        }
+        if (list.owner.toString() !== userId) return res.status(403).json({ error: "Unauthorized." });
 
         list.name = name || list.name;
         list.description = description || list.description;
@@ -92,15 +63,26 @@ router.delete("/lists/:id", verifyToken, async (req, res) => {
     try {
         const list = await List.findById(id);
         if (!list) return res.status(404).json({ error: "List not found." });
-
-        if (list.owner.toString() !== userId) {
-            return res.status(403).json({ error: "You do not have permission to delete this list." });
-        }
+        if (list.owner.toString() !== userId) return res.status(403).json({ error: "Unauthorized." });
 
         await list.remove();
         res.json({ message: "List deleted successfully." });
     } catch (err) {
         res.status(500).json({ error: "Failed to delete list." });
+    }
+});
+
+router.post("/lists/:id/reviews", verifyToken, async (req, res) => {
+    const { id } = req.params;
+    const { rating, comment } = req.body;
+    const userId = req.user.id;
+
+    try {
+        const review = new Review({ list: id, user: userId, rating, comment });
+        await review.save();
+        res.status(201).json({ message: "Review added successfully.", review });
+    } catch (err) {
+        res.status(500).json({ error: "Failed to add review." });
     }
 });
 
