@@ -1,4 +1,5 @@
 const express = require("express");
+const { query, validationResult } = require("express-validator");
 const List = require("../models/List");
 const Review = require("../models/Review");
 
@@ -28,50 +29,64 @@ const isTypoMatch = (term, target) => {
     return levenshtein(term.toLowerCase(), target.toLowerCase()) <= 2;
 };
 
-router.get("/public-lists", async (req, res) => {
-    const { search } = req.query;
-    const normalizedSearch = search ? normalizeInput(search) : null;
+router.get(
+    "/public-lists",
+    [
+        query("search")
+            .optional()
+            .isString()
+            .withMessage("Search query must be a string.")
+            .trim()
+            .escape(),
+    ],
+    async (req, res) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-    try {
-        const publicLists = await List.find({ visibility: "public" })
-            .populate("owner", "username")
-            .populate("destinations", "Destination Region Country");
+        const { search } = req.query;
+        const normalizedSearch = search ? normalizeInput(search) : null;
 
-        const detailedLists = await Promise.all(
-            publicLists.map(async (list) => {
-                const filteredDestinations = list.destinations.filter((destination) => {
-                    if (!normalizedSearch) return true;
+        try {
+            const publicLists = await List.find({ visibility: "public" })
+                .populate("owner", "username")
+                .populate("destinations", "Destination Region Country");
 
-                    const matchesDestination = isTypoMatch(normalizedSearch, destination.Destination);
-                    const matchesRegion = isTypoMatch(normalizedSearch, destination.Region);
-                    const matchesCountry = isTypoMatch(normalizedSearch, destination.Country);
+            const detailedLists = await Promise.all(
+                publicLists.map(async (list) => {
+                    const filteredDestinations = list.destinations.filter((destination) => {
+                        if (!normalizedSearch) return true;
 
-                    return matchesDestination || matchesRegion || matchesCountry;
-                });
+                        const matchesDestination = isTypoMatch(normalizedSearch, destination.Destination);
+                        const matchesRegion = isTypoMatch(normalizedSearch, destination.Region);
+                        const matchesCountry = isTypoMatch(normalizedSearch, destination.Country);
 
-                const reviews = await Review.find({ list: list._id });
-                const averageRating =
-                    reviews.length > 0
-                        ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
-                        : 0;
+                        return matchesDestination || matchesRegion || matchesCountry;
+                    });
 
-                return {
-                    id: list._id,
-                    name: list.name,
-                    description: list.description,
-                    destinations: filteredDestinations,
-                    owner: list.owner.username,
-                    numberOfDestinations: filteredDestinations.length,
-                    averageRating: averageRating.toFixed(2),
-                    updatedAt: list.updatedAt,
-                };
-            })
-        );
+                    const reviews = await Review.find({ list: list._id });
+                    const averageRating =
+                        reviews.length > 0
+                            ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
+                            : 0;
 
-        res.json(detailedLists);
-    } catch (err) {
-        res.status(500).json({ error: "Failed to fetch public lists." });
+                    return {
+                        id: list._id,
+                        name: list.name,
+                        description: list.description,
+                        destinations: filteredDestinations,
+                        owner: list.owner.username,
+                        numberOfDestinations: filteredDestinations.length,
+                        averageRating: averageRating.toFixed(2),
+                        updatedAt: list.updatedAt,
+                    };
+                })
+            );
+
+            res.json(detailedLists);
+        } catch (err) {
+            res.status(500).json({ error: "Failed to fetch public lists." });
+        }
     }
-});
+);
 
 module.exports = router;

@@ -1,4 +1,5 @@
 const express = require("express");
+const { body, param, validationResult } = require("express-validator");
 const verifyToken = require("../middleware/auth").verifyToken;
 const List = require("../models/List");
 const Review = require("../models/Review");
@@ -16,74 +17,125 @@ router.get("/lists", verifyToken, async (req, res) => {
     }
 });
 
-router.post("/lists", verifyToken, async (req, res) => {
-    const userId = req.user.id;
-    const { name, description, destinations, visibility } = req.body;
+router.post(
+    "/lists",
+    verifyToken,
+    [
+        body("name")
+            .notEmpty().withMessage("List name is required.")
+            .matches(/^[^\d<>]*$/).withMessage("List name must not contain numbers or invalid characters."),
+        body("description").optional().escape().trim(),
+        body("destinations").optional().isArray().withMessage("Destinations must be an array."),
+        body("visibility").isBoolean().withMessage("Visibility must be a boolean value."),
+    ],
+    async (req, res) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-    try {
-        const existingList = await List.findOne({ name, owner: userId });
-        if (existingList) return res.status(400).json({ error: "List already exists." });
+        const userId = req.user.id;
+        const { name, description, destinations, visibility } = req.body;
 
-        const newList = new List({ name, description, destinations, visibility, owner: userId });
-        await newList.save();
+        try {
+            const existingList = await List.findOne({ name, owner: userId });
+            if (existingList) return res.status(400).json({ error: "List name already exists." });
 
-        res.status(201).json({ message: "List created successfully.", newList });
-    } catch (err) {
-        res.status(500).json({ error: "Failed to create list." });
+            const newList = new List({ name, description, destinations, visibility, owner: userId });
+            await newList.save();
+
+            res.status(201).json({ message: "List created successfully.", newList });
+        } catch (err) {
+            res.status(500).json({ error: "Failed to create list." });
+        }
     }
-});
+);
 
-router.put("/lists/:id", verifyToken, async (req, res) => {
-    const userId = req.user.id;
-    const { id } = req.params;
-    const { name, description, destinations, visibility } = req.body;
+router.put(
+    "/lists/:id",
+    verifyToken,
+    [
+        param("id").isMongoId().withMessage("Invalid list ID."),
+        body("name")
+            .optional()
+            .matches(/^[^\d<>]*$/).withMessage("List name must not contain numbers or invalid characters."),
+        body("description").optional().escape().trim(),
+        body("destinations").optional().isArray().withMessage("Destinations must be an array."),
+        body("visibility").optional().isBoolean().withMessage("Visibility must be a boolean value."),
+    ],
+    async (req, res) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-    try {
-        const list = await List.findById(id);
-        if (!list) return res.status(404).json({ error: "List not found." });
-        if (list.owner.toString() !== userId) return res.status(403).json({ error: "Unauthorized." });
+        const userId = req.user.id;
+        const { id } = req.params;
+        const { name, description, destinations, visibility } = req.body;
 
-        list.name = name || list.name;
-        list.description = description || list.description;
-        list.destinations = destinations || list.destinations;
-        list.visibility = visibility || list.visibility;
-        list.updatedAt = Date.now();
+        try {
+            const list = await List.findById(id);
+            if (!list) return res.status(404).json({ error: "List not found." });
+            if (list.owner.toString() !== userId) return res.status(403).json({ error: "Unauthorized." });
 
-        await list.save();
-        res.json({ message: "List updated successfully.", list });
-    } catch (err) {
-        res.status(500).json({ error: "Failed to update list." });
+            list.name = name || list.name;
+            list.description = description || list.description;
+            list.destinations = destinations || list.destinations;
+            list.visibility = visibility || list.visibility;
+            list.updatedAt = Date.now();
+
+            await list.save();
+            res.json({ message: "List updated successfully.", list });
+        } catch (err) {
+            res.status(500).json({ error: "Failed to update list." });
+        }
     }
-});
+);
 
-router.delete("/lists/:id", verifyToken, async (req, res) => {
-    const userId = req.user.id;
-    const { id } = req.params;
+router.delete(
+    "/lists/:id",
+    verifyToken,
+    [param("id").isMongoId().withMessage("Invalid list ID.")],
+    async (req, res) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-    try {
-        const list = await List.findById(id);
-        if (!list) return res.status(404).json({ error: "List not found." });
-        if (list.owner.toString() !== userId) return res.status(403).json({ error: "Unauthorized." });
+        const userId = req.user.id;
+        const { id } = req.params;
 
-        await list.remove();
-        res.json({ message: "List deleted successfully." });
-    } catch (err) {
-        res.status(500).json({ error: "Failed to delete list." });
+        try {
+            const list = await List.findById(id);
+            if (!list) return res.status(404).json({ error: "List not found." });
+            if (list.owner.toString() !== userId) return res.status(403).json({ error: "Unauthorized." });
+
+            await list.remove();
+            res.json({ message: "List deleted successfully." });
+        } catch (err) {
+            res.status(500).json({ error: "Failed to delete list." });
+        }
     }
-});
+);
 
-router.post("/lists/:id/reviews", verifyToken, async (req, res) => {
-    const { id } = req.params;
-    const { rating, comment } = req.body;
-    const userId = req.user.id;
+router.post(
+    "/lists/:id/reviews",
+    verifyToken,
+    [
+        param("id").isMongoId().withMessage("Invalid list ID."),
+        body("rating").isInt({ min: 1, max: 5 }).withMessage("Rating must be between 1 and 5."),
+        body("comment").optional().escape().trim(),
+    ],
+    async (req, res) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-    try {
-        const review = new Review({ list: id, user: userId, rating, comment });
-        await review.save();
-        res.status(201).json({ message: "Review added successfully.", review });
-    } catch (err) {
-        res.status(500).json({ error: "Failed to add review." });
+        const { id } = req.params;
+        const { rating, comment } = req.body;
+        const userId = req.user.id;
+
+        try {
+            const review = new Review({ list: id, user: userId, rating, comment });
+            await review.save();
+            res.status(201).json({ message: "Review added successfully.", review });
+        } catch (err) {
+            res.status(500).json({ error: "Failed to add review." });
+        }
     }
-});
+);
 
 module.exports = router;
