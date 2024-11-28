@@ -81,37 +81,54 @@ router.get("/verify/:token", async (req, res) => {
     }
 });
 
-router.post("/login", [
-    body("email").isEmail().withMessage("Invalid email format.").trim().normalizeEmail(),
-    body("password").notEmpty().withMessage("Password is required."),
-], async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+router.post(
+    "/login",
+    [
+        body("email").isEmail().withMessage("Invalid email format.").trim().normalizeEmail(),
+        body("password").notEmpty().withMessage("Password is required."),
+    ],
+    async (req, res) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-    const { email, password } = req.body;
+        const { email, password } = req.body;
 
-    try {
-        const user = await User.findOne({ email });
-        if (!user || !(await bcrypt.compare(password, user.password))) {
-            return res.status(401).json({ error: "Invalid credentials." });
+        try {
+            const user = await User.findOne({ email });
+            if (!user) {
+                return res.status(401).json({ error: "Invalid email or password." });
+            }
+
+            if (user.isDeactivated) {
+                return res.status(403).json({
+                    error: "Account is deactivated. Please contact the administrator.",
+                });
+            }
+
+            if (!user.isVerified) {
+                return res.status(403).json({
+                    error: "Email not verified. Please check your inbox and verify your email.",
+                });
+            }
+
+            const isMatch = await bcrypt.compare(password, user.password);
+            if (!isMatch) {
+                return res.status(401).json({ error: "Invalid email or password." });
+            }
+
+            const token = jwt.sign(
+                { id: user._id, role: user.role },
+                process.env.JWT_SECRET,
+                { expiresIn: "1h" }
+            );
+
+            res.json({ token });
+        } catch (err) {
+            res.status(500).json({ error: "Login failed due to a server error." });
         }
-
-        if (user.isDeactivated) {
-            return res.status(403).json({ error: "Account is deactivated. Please contact the administrator." });
-        }
-
-        const token = jwt.sign(
-            { id: user._id, role: user.role },
-            process.env.JWT_SECRET,
-            { expiresIn: "1h" }
-        );
-
-        res.json({ token });
-    } catch (err) {
-        console.error("Login Error:", err);
-        res.status(500).json({ error: "Login failed due to a server error." });
     }
-});
+);
+
 
 router.put("/update-password", verifyToken, validatePasswordUpdate, async (req, res) => {
     const errors = validationResult(req);
@@ -135,5 +152,87 @@ router.put("/update-password", verifyToken, validatePasswordUpdate, async (req, 
         res.status(500).json({ error: "Failed to update password." });
     }
 });
+
+router.post("/resend-verification", async (req, res) => {
+    const { email } = req.body;
+
+    try {
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ error: "User not found." });
+        }
+
+        if (user.isVerified) {
+            return res.status(400).json({ error: "Email is already verified." });
+        }
+
+        const verificationToken = crypto.randomBytes(32).toString("hex");
+        user.verificationToken = verificationToken;
+        await user.save();
+
+        const verificationLink = `${process.env.BASE_URL}/auth/verify/${verificationToken}`;
+        await transporter.sendMail({
+            to: email,
+            subject: "Verify your account",
+            html: `<p>Click <a href="${verificationLink}">here</a> to verify your email.</p>`,
+        });
+
+        res.json({ message: "Verification email sent successfully." });
+    } catch (err) {
+        res.status(500).json({ error: "Failed to resend verification email." });
+    }
+});
+
+router.post("/forgot-password", async (req, res) => {
+    const { email } = req.body;
+    try {
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ error: "User not found." });
+        }
+
+        const resetToken = crypto.randomBytes(32).toString("hex");
+        user.resetToken = resetToken;
+        user.resetTokenExpiration = Date.now() + 3600000; 
+        await user.save();
+
+        const resetLink = `${process.env.BASE_URL}/auth/reset-password/${resetToken}`;
+        await transporter.sendMail({
+            to: email,
+            subject: "Password Reset",
+            html: `<p>Click <a href="${resetLink}">here</a> to reset your password.</p>`,
+        });
+
+        res.json({ message: "Password reset email sent successfully." });
+    } catch (err) {
+        res.status(500).json({ error: "Failed to send password reset email." });
+    }
+});
+
+router.post("/reset-password/:token", async (req, res) => {
+    const { token } = req.params;
+    const { newPassword } = req.body;
+
+    try {
+        const user = await User.findOne({
+            resetToken: token,
+            resetTokenExpiration: { $gt: Date.now() },
+        });
+
+        if (!user) {
+            return res.status(400).json({ error: "Invalid or expired token." });
+        }
+
+        user.password = await bcrypt.hash(newPassword, 10);
+        user.resetToken = null;
+        user.resetTokenExpiration = null;
+        await user.save();
+
+        res.json({ message: "Password reset successfully." });
+    } catch (err) {
+        res.status(500).json({ error: "Failed to reset password." });
+    }
+});
+
 
 module.exports = router;
