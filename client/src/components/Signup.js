@@ -22,12 +22,10 @@ const Signup = () => {
         password,
       });
 
-      setMessage(response.data.message); // Display success message from the server
-
-      // Redirect to login page after successful signup
+      setMessage(response.data.message); 
       setTimeout(() => {
         navigate("/");
-      }, 2000); // Wait 2 seconds to display the success message
+      }, 2000); 
     } catch (err) {
       setError(
         err.response?.data?.error || "An error occurred. Please try again."
