@@ -1,5 +1,9 @@
+
 import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, Link } from "react-router-dom";
+import axios from "axios";
+
+import Navbar from "./components/Navbar";
 import Home from "./components/Home";
 import Login from "./components/Login";
 import Signup from "./components/Signup";
@@ -8,58 +12,145 @@ import ResetPassword from "./components/ResetPassword";
 import PublicLists from "./components/PublicLists";
 import VerifyEmail from "./components/VerifyEmail";
 import Dashboard from "./components/Dashboard";
+import AdminDashboard from "./components/AdminDashboard";
+import MyLists from "./components/MyLists";
+import PrivacyPolicy from "./components/PrivacyPolicy";
+import AcceptableUsePolicy from "./components/AcceptableUsePolicy";
+import DMCANotice from "./components/DMCANotice";
 import ProtectedRoute from "./components/ProtectedRoute";
-import axios from "axios";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    checkAuthStatus();
+  }, []);
+
+  const checkAuthStatus = async () => {
     const token = localStorage.getItem("token");
     if (token) {
-      axios
-        .get("http://localhost:3000/api/secure/user", {
+      try {
+        const response = await axios.get("http://localhost:3000/api/secure/user", {
           headers: { Authorization: `Bearer ${token}` },
-        })
-        .then((response) => {
-          setIsAuthenticated(true);
-          setUser(response.data);
-        })
-        .catch(() => {
-          setIsAuthenticated(false);
-          setUser(null);
-          localStorage.removeItem("token");
         });
+        // Make sure to set both user and authentication state
+        setUser(response.data);
+        setIsAuthenticated(true);
+      } catch (error) {
+        console.error("Auth check failed:", error);
+        // Clear everything on auth failure
+        localStorage.removeItem("token");
+        setUser(null);
+        setIsAuthenticated(false);
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // No token found
+      setUser(null);
+      setIsAuthenticated(false);
+      setLoading(false);
     }
-  }, []);
+  };
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
 
   return (
     <Router>
-      <div className="min-h-screen bg-gray-100">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password/:token" element={<ResetPassword />} />
-          <Route path="/verify-email/:token" element={<VerifyEmail />} />
-          <Route path="/public-lists" element={<PublicLists />} />
-          <Route
-            path="/dashboard"
-            element={
-              <Dashboard isAuthenticated={isAuthenticated} user={user} />
-            }
-          />
-          <Route
-            path="/private-feature"
-            element={
-              <ProtectedRoute>
-                <div>Private Feature Placeholder</div>
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
+      <div className="flex flex-col min-h-screen">
+        <Navbar
+          isAuthenticated={isAuthenticated}
+          user={user}
+          setIsAuthenticated={setIsAuthenticated}
+          setUser={setUser}
+        />
+        <main className="flex-grow bg-gray-100">
+          <Routes>
+            <Route
+              path="/Home"
+              element={<Home isAuthenticated={isAuthenticated} user={user} />}
+            />
+            <Route
+              path="/"
+              element={
+                isAuthenticated ? (
+                  <Navigate to="/dashboard" />
+                ) : (
+                  <Login setIsAuthenticated={setIsAuthenticated} setUser={setUser} />
+                )
+              }
+            />
+            <Route
+              path="/signup"
+              element={
+                isAuthenticated ? (
+                  <Navigate to="/dashboard" />
+                ) : (
+                  <Signup />
+                )
+              }
+            />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password/:token" element={<ResetPassword />} />
+            <Route path="/verify-email/:token" element={<VerifyEmail />} />
+            <Route path="/public-lists" element={<PublicLists />} />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute isAuthenticated={isAuthenticated}>
+                  <Dashboard
+                    user={user}
+                    setIsAuthenticated={setIsAuthenticated}
+                    setUser={setUser}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin-dashboard"
+              element={
+                <ProtectedRoute
+                  isAuthenticated={isAuthenticated}
+                  requiredRole="admin"
+                  user={user}
+                >
+                  <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-lists"
+              element={
+                <ProtectedRoute isAuthenticated={isAuthenticated}>
+                  <MyLists user={user} />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/acceptable-use" element={<AcceptableUsePolicy />} />
+            <Route path="/dmca-policy" element={<DMCANotice />} />
+            {/* Optional: Redirect unknown routes to Home or a 404 component */}
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        </main>
+        {/* Footer with Links */}
+        <footer className="bg-gray-800 text-white p-4">
+          <div className="container mx-auto flex justify-center space-x-6">
+            <Link to="/privacy-policy" className="hover:underline">
+              Privacy Policy
+            </Link>
+            <Link to="/acceptable-use" className="hover:underline">
+              Acceptable Use
+            </Link>
+            <Link to="/dmca-policy" className="hover:underline">
+              DMCA Notice
+            </Link>
+          </div>
+        </footer>
       </div>
     </Router>
   );

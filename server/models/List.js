@@ -1,12 +1,36 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
-const ListSchema = new mongoose.Schema({
-    name: { type: String, required: true },
-    description: { type: String },
-    destinations: [{ type: mongoose.Schema.Types.ObjectId, ref: "Destination" }],
-    visibility: { type: String, enum: ["public", "private"], default: "private" },
-    updatedAt: { type: Date, default: Date.now },
-    owner: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true } 
+const listSchema = new mongoose.Schema({
+    name: {
+        type: String,
+        required: true
+    },
+    description: String,
+    owner: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
+    destinations: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Destination'
+    }],
+    reviews: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Review'
+    }],
+    visibility: {
+        type: Boolean,
+        default: false
+    },
+    updatedAt: {
+        type: Date,
+        default: Date.now
+    },
+    averageRating: {  
+        type: Number,
+        default: 0
+    },
 });
 
-module.exports = mongoose.model("List", ListSchema);
+module.exports = mongoose.model('List', listSchema);

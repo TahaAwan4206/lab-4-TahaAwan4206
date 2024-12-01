@@ -10,5 +10,11 @@ const destinationSchema = new mongoose.Schema({
     Language: { type: String },
 });
 
+destinationSchema.index({
+    Destination: "text",
+    Region: "text",
+    Country: "text",
+});
+
 const Destination = mongoose.model("Destination", destinationSchema);
 module.exports = Destination;

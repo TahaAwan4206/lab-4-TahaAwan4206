@@ -2,31 +2,84 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-const Login = () => {
+const Login = ({ onLogin }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
+    setLoading(true);
 
     try {
+  
+      if (!email.trim() || !password.trim()) {
+        setError("Email and password are required");
+        setLoading(false);
+        return;
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        setError("Please enter a valid email address");
+        setLoading(false);
+        return;
+      }
+
+      // Send login request
       const response = await axios.post("http://localhost:3000/auth/login", {
         email,
         password,
       });
 
-      const { token } = response.data;
+      const { token, user } = response.data;
+
+      // Store token and user info
       localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user));
+
+      // Call onLogin to update App state
+      onLogin(user, token);
+
       navigate("/dashboard");
     } catch (err) {
-      setError(
-        err.response?.data?.error ||
-        "An error occurred. Please try again."
-      );
+      const errorMsg = err.response?.data?.error || "An error occurred";
+
+      if (errorMsg.includes("not verified")) {
+        setError(
+          <div>
+            Your email has not been verified.{" "}
+            <button
+              onClick={() => handleResendVerification(email)}
+              className="text-blue-500 underline ml-2"
+            >
+              Resend verification email
+            </button>
+          </div>
+        );
+      } else if (errorMsg.includes("deactivated")) {
+        setError(
+          "Account deactivated. Please contact administrator at admin@europeanvoyager.com"
+        );
+      } else {
+        setError(errorMsg);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async (email) => {
+    try {
+      await axios.post("http://localhost:3000/auth/resend-verification", {
+        email,
+      });
+      setError("Verification email sent. Please check your inbox.");
+    } catch (err) {
+      setError("Failed to resend verification email. Please try again.");
     }
   };
 
@@ -63,23 +116,39 @@ const Login = () => {
         {error && <p className="mb-4 text-red-500">{error}</p>}
         <button
           type="submit"
-          className="w-full rounded bg-blue-500 p-2 text-white hover:bg-blue-600"
+          disabled={loading}
+          className="w-full rounded bg-blue-500 p-2 text-white hover:bg-blue-600 disabled:bg-blue-300"
         >
-          Login
+          {loading ? "Logging in..." : "Login"}
         </button>
       </form>
-      <p className="mt-4 text-gray-700">
-        Don't have an account?{" "}
-        <a href="/signup" className="text-blue-500 hover:underline">
-          Sign Up
-        </a>
-      </p>
-      <p className="mt-4 text-gray-700">
-        Forgot your password?{" "}
-        <a href="/forgot-password" className="text-blue-500 hover:underline">
-          Reset here
-        </a>
-      </p>
+      <div className="mt-4 space-y-2 text-center">
+        <p className="text-gray-700">
+          Don't have an account?{" "}
+          <button
+            onClick={() => navigate("/signup")}
+            className="text-blue-500 hover:underline"
+          >
+            Sign Up
+          </button>
+        </p>
+        <p className="text-gray-700">
+          <button
+            onClick={() => navigate("/forgot-password")}
+            className="text-blue-500 hover:underline"
+          >
+            Forgot Password?
+          </button>
+        </p>
+        <p className="text-gray-700">
+          <button
+            onClick={() => navigate("/public-lists")}
+            className="text-gray-600 hover:underline"
+          >
+            Continue as Guest
+          </button>
+        </p>
+      </div>
     </div>
   );
 };

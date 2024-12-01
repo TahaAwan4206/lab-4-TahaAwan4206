@@ -1,94 +1,180 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate, Link } from "react-router-dom";
 import axios from "axios";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 
-const SearchResultsMap = () => {
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState([]);
-  const [error, setError] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const resultsPerPage = 5;
+import Navbar from "./components/Navbar";
+import Home from "./components/Home";
+import Login from "./components/Login";
+import Signup from "./components/Signup";
+import ForgotPassword from "./components/ForgotPassword";
+import ResetPassword from "./components/ResetPassword";
+import PublicLists from "./components/PublicLists";
+import VerifyEmail from "./components/VerifyEmail";
+import Dashboard from "./components/Dashboard";
+import AdminDashboard from "./components/AdminDashboard";
+import MyLists from "./components/MyLists";
+import PrivacyPolicy from "./components/PrivacyPolicy";
+import AcceptableUsePolicy from "./components/AcceptableUsePolicy";
+import DMCANotice from "./components/DMCANotice";
+import ProtectedRoute from "./components/ProtectedRoute";
 
-  const handleSearch = async () => {
-    try {
-      const response = await axios.get(`http://localhost:3000/api/search?query=${query}`);
-      setResults(response.data);
-      setError("");
-      setCurrentPage(1); 
-    } catch (err) {
-      setError("Search failed. Please try again.");
+function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    checkAuthStatus();
+  }, []);
+
+  const checkAuthStatus = async () => {
+    const token = localStorage.getItem("token");
+    const storedUser = localStorage.getItem("user");
+
+    if (token && storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+
+      
+        const response = await axios.get("http://localhost:3000/api/secure/user", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+
+        if (response.data._id === parsedUser._id) {
+          setUser(parsedUser);
+          setIsAuthenticated(true);
+        } else {
+          throw new Error("Token mismatch");
+        }
+      } catch (error) {
+        console.error("Auth check failed:", error);
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        setUser(null);
+        setIsAuthenticated(false);
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      setUser(null);
+      setIsAuthenticated(false);
+      setLoading(false);
     }
   };
 
-  const paginatedResults = () => {
-    const startIndex = (currentPage - 1) * resultsPerPage;
-    return results.slice(startIndex, startIndex + resultsPerPage);
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setUser(null);
+    setIsAuthenticated(false);
   };
 
-  const handlePageChange = (direction) => {
-    const newPage = currentPage + direction;
-    if (newPage > 0 && newPage <= Math.ceil(results.length / resultsPerPage)) {
-      setCurrentPage(newPage);
-    }
+  const handleLogin = (user, token) => {
+    localStorage.setItem("token", token);
+    localStorage.setItem("user", JSON.stringify(user));
+    setUser(user);
+    setIsAuthenticated(true);
   };
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      <h1 className="text-4xl font-bold mb-6">Search Destinations</h1>
-      <div className="mb-4">
-        <input
-          type="text"
-          className="p-2 border rounded w-full"
-          placeholder="Search for destinations..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
+    <Router>
+      <div className="flex flex-col min-h-screen">
+        <Navbar
+          isAuthenticated={isAuthenticated}
+          user={user}
+          setIsAuthenticated={setIsAuthenticated}
+          setUser={setUser}
+          onLogout={handleLogout}
         />
-        <button
-          onClick={handleSearch}
-          className="mt-2 px-4 py-2 bg-blue-500 text-white rounded"
-        >
-          Search
-        </button>
-      </div>
-      {error && <p className="text-red-500">{error}</p>}
-      {results.length > 0 && (
-        <>
-          <MapContainer center={[51.505, -0.09]} zoom={5} className="h-96 mb-6">
-            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-            {paginatedResults().map((result) => (
-              <Marker key={result.id} position={[result.latitude, result.longitude]}>
-                <Popup>
-                  <strong>{result.name}</strong>
-                  <p>{result.region}, {result.country}</p>
-                  <p><strong>Language:</strong> {result.language}</p>
-                  <p><strong>Currency:</strong> {result.currency}</p>
-                </Popup>
-              </Marker>
-            ))}
-          </MapContainer>
-          <div className="flex justify-between items-center">
-            <button
-              disabled={currentPage === 1}
-              onClick={() => handlePageChange(-1)}
-              className={`px-4 py-2 rounded ${currentPage === 1 ? "bg-gray-300" : "bg-blue-500 text-white hover:bg-blue-600"}`}
-            >
-              Previous
-            </button>
-            <span>
-              Page {currentPage} of {Math.ceil(results.length / resultsPerPage)}
-            </span>
-            <button
-              disabled={currentPage === Math.ceil(results.length / resultsPerPage)}
-              onClick={() => handlePageChange(1)}
-              className={`px-4 py-2 rounded ${currentPage === Math.ceil(results.length / resultsPerPage) ? "bg-gray-300" : "bg-blue-500 text-white hover:bg-blue-600"}`}
-            >
-              Next
-            </button>
+        <main className="flex-grow bg-gray-100">
+          <Routes>
+            <Route
+              path="/"
+              element={<Home isAuthenticated={isAuthenticated} user={user} />}
+            />
+            <Route
+              path="/login"
+              element={
+                isAuthenticated ? (
+                  <Navigate to="/dashboard" />
+                ) : (
+                  <Login onLogin={handleLogin} />
+                )
+              }
+            />
+            <Route
+              path="/signup"
+              element={
+                isAuthenticated ? (
+                  <Navigate to="/dashboard" />
+                ) : (
+                  <Signup />
+                )
+              }
+            />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password/:token" element={<ResetPassword />} />
+            <Route path="/verify-email/:token" element={<VerifyEmail />} />
+            <Route path="/public-lists" element={<PublicLists />} />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute isAuthenticated={isAuthenticated}>
+                  <Dashboard
+                    user={user}
+                    setIsAuthenticated={setIsAuthenticated}
+                    setUser={setUser}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin-dashboard"
+              element={
+                <ProtectedRoute
+                  isAuthenticated={isAuthenticated}
+                  requiredRole="admin"
+                  user={user}
+                >
+                  <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-lists"
+              element={
+                <ProtectedRoute isAuthenticated={isAuthenticated}>
+                  <MyLists user={user} />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/acceptable-use" element={<AcceptableUsePolicy />} />
+            <Route path="/dmca-policy" element={<DMCANotice />} />
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        </main>
+        <footer className="bg-gray-800 text-white p-4">
+          <div className="container mx-auto flex justify-center space-x-6">
+            <Link to="/privacy-policy" className="hover:underline">
+              Privacy Policy
+            </Link>
+            <Link to="/acceptable-use" className="hover:underline">
+              Acceptable Use
+            </Link>
+            <Link to="/dmca-policy" className="hover:underline">
+              DMCA Notice
+            </Link>
           </div>
-        </>
-      )}
-    </div>
+        </footer>
+      </div>
+    </Router>
   );
-};
+}
 
-export default SearchResultsMap;
+export default App;
