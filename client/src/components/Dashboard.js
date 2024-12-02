@@ -11,7 +11,7 @@ const Dashboard = ({ user, setIsAuthenticated, setUser }) => {
   const [userLists, setUserLists] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
-  const [selectedList, setSelectedList] = useState(null);
+  const [selectedList, setSelectedList] = useState("");
   const [error, setError] = useState("");
   const [expandedDestination, setExpandedDestination] = useState(null);
 

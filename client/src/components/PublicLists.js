@@ -3,18 +3,17 @@ import axios from 'axios';
 
 const PublicLists = () => {
   const [publicLists, setPublicLists] = useState([]);
-  const [sortOption, setSortOption] = useState("");
   const [limit, setLimit] = useState(10);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [expandedList, setExpandedList] = useState(null);
-  const [expandedDestination, setExpandedDestination] = useState(null);
+  const [expandedDestinations, setExpandedDestinations] = useState({});
   const [newReview, setNewReview] = useState({ rating: 1, comment: "" });
   const [reviewListId, setReviewListId] = useState(null);
 
   useEffect(() => {
     fetchPublicLists();
-  }, [sortOption, limit]);
+  }, [limit]);
 
   const fetchPublicLists = async () => {
     setLoading(true);
@@ -22,11 +21,29 @@ const PublicLists = () => {
     try {
       const response = await axios.get("http://localhost:3000/api/open/public-lists", {
         params: {
-          sort: sortOption,
           limit: limit,
         },
       });
-      setPublicLists(response.data);
+
+      const listsWithRatings = response.data.map((list) => {
+        const visibleReviews = list.reviews?.filter((review) => !review.isHidden) || [];
+        const averageRating =
+          visibleReviews.length > 0
+            ? Number(
+                (
+                  visibleReviews.reduce((acc, review) => acc + review.rating, 0) /
+                  visibleReviews.length
+                ).toFixed(1)
+              )
+            : 0;
+        return {
+          ...list,
+          averageRating: averageRating,
+          reviewCount: visibleReviews.length,
+        };
+      });
+
+      setPublicLists(listsWithRatings);
     } catch (error) {
       console.error("Error fetching public lists:", error);
       setError("Failed to load public lists. Please try again later.");
@@ -51,8 +68,25 @@ const PublicLists = () => {
 
       const updatedListResponse = await axios.get(`http://localhost:3000/api/open/public-lists/${listId}`);
       
-      setPublicLists(lists => 
-        lists.map(list => list._id === listId ? updatedListResponse.data : list)
+      const visibleReviews = updatedListResponse.data.reviews?.filter(review => !review.isHidden) || [];
+      const averageRating =
+        visibleReviews.length > 0
+          ? Number(
+              (
+                visibleReviews.reduce((acc, review) => acc + review.rating, 0) /
+                visibleReviews.length
+              ).toFixed(1)
+            )
+          : 0;
+
+      const updatedListWithRatings = {
+        ...updatedListResponse.data,
+        averageRating: averageRating,
+        reviewCount: visibleReviews.length,
+      };
+
+      setPublicLists((lists) => 
+        lists.map((list) => list._id === listId ? updatedListWithRatings : list)
       );
 
       setReviewListId(null);
@@ -69,29 +103,31 @@ const PublicLists = () => {
     }
   };
 
+  const toggleDestination = (listId, destIndex) => {
+    setExpandedDestinations((prev) => {
+      const listDestinations = new Set(prev[listId] || []);
+      if (listDestinations.has(destIndex)) {
+        listDestinations.delete(destIndex);
+      } else {
+        listDestinations.add(destIndex);
+      }
+      return { ...prev, [listId]: listDestinations };
+    });
+  };
+
   return (
     <div className="p-6">
       <h2 className="text-2xl font-bold mb-4">Public Lists</h2>
 
-      <div className="mb-4 grid grid-cols-4 gap-4">
-        <select
-          value={sortOption}
-          onChange={(e) => setSortOption(e.target.value)}
-          className="p-2 border rounded"
-        >
-          <option value="">Most Recent</option>
-          <option value="rating">Highest Rated</option>
-          <option value="destinations">Most Destinations</option>
-        </select>
-
+      <div className="mb-4">
         <select
           value={limit}
           onChange={(e) => setLimit(Number(e.target.value))}
-          className="p-2 border rounded"
+          className="p-2 border rounded w-full md:w-1/4"
         >
           {[...Array(10).keys()].map((i) => (
             <option key={i + 1} value={i + 1}>
-              Show {i + 1} Lists
+              Show {i + 1} {i + 1 === 1 ? "List" : "Lists"}
             </option>
           ))}
         </select>
@@ -109,9 +145,12 @@ const PublicLists = () => {
                 <p className="text-sm text-gray-600">Created by {list.owner?.username || 'Unknown'}</p>
                 <p className="text-sm text-gray-500">
                   {list.averageRating !== undefined && list.averageRating >= 0
-                    ? list.averageRating.toFixed(1)
-                    : "No ratings yet"}/5
+                    ? `${list.averageRating}/5`
+                    : "No ratings yet"}
                 </p>
+                {list.reviewCount > 0 && (
+                  <p className="text-sm text-gray-500">({list.reviewCount} reviews)</p>
+                )}
               </div>
               <button
                 onClick={() => setExpandedList(expandedList === list._id ? null : list._id)}
@@ -130,7 +169,7 @@ const PublicLists = () => {
                 <div className="space-y-2 mb-4">
                   <h4 className="font-semibold">Destinations:</h4>
                   {list.destinations && list.destinations.map((dest, index) => (
-                    <div key={dest._id || index} className="border-l-2 border-blue-500 pl-3">
+                    <div key={`${list._id}-dest-${index}`} className="border-l-2 border-blue-500 pl-3">
                       <div className="flex justify-between items-center">
                         <div>
                           <p className="font-medium">{dest.name || dest.Destination}</p>
@@ -139,25 +178,22 @@ const PublicLists = () => {
                           </p>
                         </div>
                         <button
-                          onClick={() =>
-                            setExpandedDestination(expandedDestination === dest._id ? null : dest._id)
-                          }
+                          onClick={() => toggleDestination(list._id, index)}
                           className="text-sm text-blue-500 underline"
                         >
-                          {expandedDestination === dest._id ? "Hide Details" : "Show Details"}
+                          {expandedDestinations[list._id]?.has(index) ? "Hide Details" : "Show Details"}
                         </button>
                       </div>
 
-                      {expandedDestination === dest._id && (
+                      {expandedDestinations[list._id]?.has(index) && (
                         <div className="mt-2 text-sm text-gray-700">
-                         {Object.entries(dest)
-                          .filter(([key]) => key !== "_id" && key !== "__v")
-                          .map(([key, value]) => (
-                          <p key={key}>
-                          <strong>{key}:</strong> {value}
-                            </p>
-                          ))}
-
+                          {Object.entries(dest)
+                            .filter(([key]) => key !== "_id" && key !== "__v")
+                            .map(([key, value]) => (
+                              <p key={key}>
+                                <strong>{key}:</strong> {value}
+                              </p>
+                            ))}
                         </div>
                       )}
                     </div>

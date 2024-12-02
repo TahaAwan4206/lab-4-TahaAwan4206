@@ -12,7 +12,7 @@ const ListCard = ({ list, onEdit, onDelete, onToggleVisibility, onRemoveDestinat
       onClick={toggleExpanded}
     >
       {!isExpanded ? (
-        // Summarized view
+       
         <div className="flex justify-between items-center">
           <h3 className="text-2xl font-bold text-gray-800">{list.name}</h3>
           <div className="flex flex-col items-end">
@@ -29,7 +29,7 @@ const ListCard = ({ list, onEdit, onDelete, onToggleVisibility, onRemoveDestinat
           </div>
         </div>
       ) : (
-        // Expanded view
+       
         <div>
           <div className="flex justify-between items-start mb-4">
             <div>
@@ -61,7 +61,7 @@ const ListCard = ({ list, onEdit, onDelete, onToggleVisibility, onRemoveDestinat
                     </span>
                     <button
                       onClick={(e) => {
-                        e.stopPropagation(); // Prevents toggling the card when clicking the button
+                        e.stopPropagation();
                         onRemoveDestination(list._id, dest._id);
                       }}
                       className="text-red-500 hover:text-red-700 text-sm font-medium"
@@ -92,7 +92,7 @@ const ListCard = ({ list, onEdit, onDelete, onToggleVisibility, onRemoveDestinat
           <div className="flex gap-2 mt-4 pt-4 border-t border-gray-200">
             <button
               onClick={(e) => {
-                e.stopPropagation(); // Prevents toggling the card when clicking the button
+                e.stopPropagation();
                 onEdit(list);
               }}
               className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors"
