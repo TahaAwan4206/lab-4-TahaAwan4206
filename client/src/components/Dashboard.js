@@ -136,15 +136,7 @@ const Dashboard = ({ user, setIsAuthenticated, setUser }) => {
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-4xl font-bold text-blue-500">Your Dashboard</h1>
-        <button
-          onClick={handleLogout}
-          className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-        >
-          Logout
-        </button>
-      </div>
+      
 
       <div className="mb-6">
         <h2 className="text-2xl font-bold">Search Destinations</h2>

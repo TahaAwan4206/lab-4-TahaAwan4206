@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import axios from "axios";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
-const LandingPage = ({ onLogin }) => {
+const Home = ({ onLogin }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [error, setError] = useState("");
   const [mapData, setMapData] = useState({ visible: false, coordinates: null, name: "" });
+  const [expandedResultId, setExpandedResultId] = useState(null);
 
-  
   delete L.Icon.Default.prototype._getIconUrl;
   L.Icon.Default.mergeOptions({
     iconRetinaUrl: require("leaflet/dist/images/marker-icon-2x.png"),
@@ -57,10 +57,13 @@ const LandingPage = ({ onLogin }) => {
     setMapData({ visible: false, coordinates: null, name: "" });
   };
 
+  const toggleResultExpansion = (id) => {
+    setExpandedResultId(expandedResultId === id ? null : id);
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
-  
-      <div className="max-w-6xl mx-auto pt-12 px-4">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white pt-20">
+      <div className="max-w-6xl mx-auto px-4">
         <div className="text-center space-y-6 mb-12">
           <h1 className="text-5xl font-bold text-blue-600">
             EuropeanVoyager
@@ -70,15 +73,6 @@ const LandingPage = ({ onLogin }) => {
             Create and discover curated European travel lists. Search destinations, plan your trips, 
             and share your adventures with fellow travelers.
           </p>
-          
-          <div className="space-y-4">
-            <button className="bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-colors mx-2">
-              Login
-            </button>
-            <button className="bg-gray-50 text-gray-700 px-8 py-3 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-colors border border-gray-200 mx-2">
-              Continue as Guest
-            </button>
-          </div>
         </div>
 
         <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-6 mb-8">
@@ -101,45 +95,64 @@ const LandingPage = ({ onLogin }) => {
           
           {error && <p className="text-red-500 mb-4">{error}</p>}
           
-          <div className="grid gap-4 mt-4">
+          <div className="space-y-4 mt-4">
             {searchResults.map((result) => (
               <div key={result.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow bg-gray-50">
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-start">
                   <div>
                     <h3 className="text-lg font-semibold">{result.name}</h3>
                     <p className="text-gray-600">{result.country}, {result.region}</p>
                   </div>
                   <div className="flex gap-2">
                     <button
-                      onClick={() => showOnMap(result.latitude, result.longitude, result.name)}
-                      className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-sm"
+                      onClick={() => toggleResultExpansion(result.id)}
+                      className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 text-sm"
                     >
-                      View Map
-                    </button>
-                    <button
-                      className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 text-sm"
-                      onClick={() => window.open(`https://duckduckgo.com/?q=${result.name} ${result.country}`, "_blank")}
-                    >
-                      Learn More
+                      {expandedResultId === result.id ? "Show Less" : "Show More"}
                     </button>
                   </div>
                 </div>
+
+                {expandedResultId === result.id && (
+                  <div className="mt-4 pl-4 border-l-2 border-blue-500">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-600">Currency: {result.currency || "N/A"}</p>
+                        <p className="text-sm text-gray-600">Language: {result.language || "N/A"}</p>
+                        <p className="text-sm text-gray-600">Coordinates: {result.latitude}, {result.longitude}</p>
+                      </div>
+                      <div className="flex gap-2 justify-end">
+                        <button
+                          onClick={() => showOnMap(result.latitude, result.longitude, result.name)}
+                          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-sm"
+                        >
+                          View Map
+                        </button>
+                        <button
+                          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 text-sm"
+                          onClick={() => window.open(`https://duckduckgo.com/?q=${result.name} ${result.country}`, "_blank")}
+                        >
+                          Learn More
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
         </div>
       </div>
 
-    
       {mapData.visible && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white w-11/12 h-5/6 rounded-lg relative">
-          <button
-            onClick={closeMap}
-             className="absolute top-4 right-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 z-[1002]"
-                >
-                Close
-                </button>
+            <button
+              onClick={closeMap}
+              className="absolute top-4 right-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 z-[1002]"
+            >
+              Close
+            </button>
             <MapContainer
               center={mapData.coordinates || [0, 0]}
               zoom={13}
@@ -162,4 +175,4 @@ const LandingPage = ({ onLogin }) => {
   );
 };
 
-export default LandingPage;
+export default Home;

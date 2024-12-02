@@ -44,6 +44,7 @@ const validatePasswordUpdate = [
         .matches(/^[A-Za-z0-9@#$%^&+=!]*$/)
         .withMessage("New password contains invalid characters."),
 ];
+
 router.post("/signup", validateSignup, async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -68,8 +69,7 @@ router.post("/signup", validateSignup, async (req, res) => {
 
         await user.save();
 
-
-        const verificationLink = `http://localhost:3001/verify-email/${verificationToken}`;
+        const verificationLink = `${process.env.BASE_URL}/verify-email/${verificationToken}`;
         await transporter.sendMail({
             to: email,
             subject: "Verify your EuropeanVoyager account",
@@ -90,6 +90,7 @@ router.post("/signup", validateSignup, async (req, res) => {
     }
 });
 
+
 router.get("/verify/:token", async (req, res) => {
     try {
         const user = await User.findOne({ verificationToken: req.params.token });
@@ -108,6 +109,7 @@ router.get("/verify/:token", async (req, res) => {
         res.status(500).json({ error: "Failed to verify email." });
     }
 });
+
 
 router.post("/login", [
     body("email").isEmail().withMessage("Invalid email format.").trim().normalizeEmail(),
@@ -190,6 +192,7 @@ router.put("/update-password", verifyToken, validatePasswordUpdate, async (req, 
     }
 });
 
+
 router.post("/resend-verification", async (req, res) => {
     try {
         const { email } = req.body;
@@ -237,8 +240,15 @@ router.post("/forgot-password", async (req, res) => {
 
         const resetToken = crypto.randomBytes(32).toString("hex");
         user.resetPasswordToken = resetToken;
-        user.resetPasswordExpires = Date.now() + 3600000; 
+        user.resetPasswordExpires = Date.now() + 3600000;
+
+        
         await user.save();
+        
+        
+        const verifyUser = await User.findOne({ email });
+        console.log('Token saved in database:', verifyUser.resetPasswordToken);
+        console.log('Token expires:', new Date(verifyUser.resetPasswordExpires));
 
         const resetLink = `${process.env.BASE_URL}/reset-password/${resetToken}`;
         await transporter.sendMail({
@@ -260,7 +270,6 @@ router.post("/forgot-password", async (req, res) => {
     }
 });
 
-
 router.post("/reset-password/:token", [
     body("newPassword")
         .isLength({ min: 6 })
@@ -274,19 +283,36 @@ router.post("/reset-password/:token", [
     }
 
     try {
+        console.log('Reset token:', req.params.token);
+        
+        
         const user = await User.findOne({
+            resetPasswordToken: req.params.token
+        });
+
+        console.log('User found:', user);
+        if (user) {
+            console.log('Token expiry:', new Date(user.resetPasswordExpires));
+            console.log('Current time:', new Date());
+            console.log('Is expired:', user.resetPasswordExpires < Date.now());
+        }
+
+       
+        const validUser = await User.findOne({
             resetPasswordToken: req.params.token,
             resetPasswordExpires: { $gt: Date.now() }
         });
 
-        if (!user) {
+        if (!validUser) {
             return res.status(400).json({ error: "Invalid or expired reset token." });
         }
 
-        user.password = req.body.newPassword;
-        user.resetPasswordToken = undefined;
-        user.resetPasswordExpires = undefined;
-        await user.save();
+       
+        const hashedPassword = await bcrypt.hash(req.body.newPassword, 10);
+        validUser.password = hashedPassword;
+        validUser.resetPasswordToken = undefined;
+        validUser.resetPasswordExpires = undefined;
+        await validUser.save();
 
         res.json({ message: "Password has been reset successfully." });
     } catch (err) {
@@ -294,6 +320,7 @@ router.post("/reset-password/:token", [
         res.status(500).json({ error: "Failed to reset password." });
     }
 });
+
 
 
 router.get("/user", verifyToken, async (req, res) => {

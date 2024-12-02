@@ -3,19 +3,18 @@ import axios from 'axios';
 
 const PublicLists = () => {
   const [publicLists, setPublicLists] = useState([]);
-  const [sortOption, setSortOption] = useState("lastModified");
-  const [limit, setLimit] = useState(10); // State for number of lists to display
+  const [sortOption, setSortOption] = useState("");
+  const [limit, setLimit] = useState(10);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [expandedList, setExpandedList] = useState(null);
+  const [expandedDestination, setExpandedDestination] = useState(null);
   const [newReview, setNewReview] = useState({ rating: 1, comment: "" });
   const [reviewListId, setReviewListId] = useState(null);
-  const [filterCountry, setFilterCountry] = useState("");
-  const [filterRegion, setFilterRegion] = useState("");
 
   useEffect(() => {
     fetchPublicLists();
-  }, [sortOption, limit, filterCountry, filterRegion]);
+  }, [sortOption, limit]);
 
   const fetchPublicLists = async () => {
     setLoading(true);
@@ -23,13 +22,10 @@ const PublicLists = () => {
     try {
       const response = await axios.get("http://localhost:3000/api/open/public-lists", {
         params: {
-          sort: sortOption === "lastModified" ? "lastModified" : sortOption, 
-          country: filterCountry || undefined, 
-          region: filterRegion || undefined,   
-          limit: limit, 
+          sort: sortOption,
+          limit: limit,
         },
       });
-
       setPublicLists(response.data);
     } catch (error) {
       console.error("Error fetching public lists:", error);
@@ -39,56 +35,55 @@ const PublicLists = () => {
     }
   };
 
-    const handleAddReview = async (listId) => {
-      try {
-          const token = localStorage.getItem("token");
-          if (!token) {
-              setError("Please log in to add a review");
-              return;
-          }
-  
- 
-          await axios.post(
-              `http://localhost:3000/api/secure/lists/${listId}/reviews`,
-              newReview,
-              { headers: { Authorization: `Bearer ${token}` } }
-          );
-  
-      
-          const updatedListResponse = await axios.get(`http://localhost:3000/api/open/public-lists/${listId}`);
-  
-          setPublicLists((lists) =>
-              lists.map((list) => (list._id === listId ? updatedListResponse.data : list))
-          );
-  
-          setReviewListId(null);
-          setNewReview({ rating: 1, comment: "" });
-          setError("");
-      } catch (err) {
-          console.error("Review error:", err);
-          setError(err.response?.data?.error || "Failed to add review");
+  const handleAddReview = async (listId) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setError("Please log in to add a review");
+        return;
       }
+
+      await axios.post(
+        `http://localhost:3000/api/secure/lists/${listId}/reviews`,
+        newReview,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const updatedListResponse = await axios.get(`http://localhost:3000/api/open/public-lists/${listId}`);
+      
+      setPublicLists(lists => 
+        lists.map(list => list._id === listId ? updatedListResponse.data : list)
+      );
+
+      setReviewListId(null);
+      setNewReview({ rating: 1, comment: "" });
+      setError("");
+    } catch (err) {
+      console.error("Review error:", err);
+      if (err.response?.status === 404) {
+        setError("This list no longer exists");
+        await fetchPublicLists();
+      } else {
+        setError(err.response?.data?.error || "Failed to add review");
+      }
+    }
   };
-  
 
   return (
     <div className="p-6">
       <h2 className="text-2xl font-bold mb-4">Public Lists</h2>
 
- 
       <div className="mb-4 grid grid-cols-4 gap-4">
-
         <select
           value={sortOption}
           onChange={(e) => setSortOption(e.target.value)}
           className="p-2 border rounded"
         >
-          <option value="lastModified">Last Modified</option>
+          <option value="">Most Recent</option>
           <option value="rating">Highest Rated</option>
           <option value="destinations">Most Destinations</option>
         </select>
 
- 
         <select
           value={limit}
           onChange={(e) => setLimit(Number(e.target.value))}
@@ -100,24 +95,6 @@ const PublicLists = () => {
             </option>
           ))}
         </select>
-
-     
-        <input
-          type="text"
-          placeholder="Filter by Country"
-          value={filterCountry}
-          onChange={(e) => setFilterCountry(e.target.value)}
-          className="p-2 border rounded"
-        />
-
- 
-        <input
-          type="text"
-          placeholder="Filter by Region"
-          value={filterRegion}
-          onChange={(e) => setFilterRegion(e.target.value)}
-          className="p-2 border rounded"
-        />
       </div>
 
       {loading && <p className="text-gray-600">Loading lists...</p>}
@@ -131,12 +108,10 @@ const PublicLists = () => {
                 <h3 className="text-lg font-semibold">{list.name}</h3>
                 <p className="text-sm text-gray-600">Created by {list.owner?.username || 'Unknown'}</p>
                 <p className="text-sm text-gray-500">
-                {list.averageRating !== undefined && list.averageRating >= 0
-  ? list.averageRating.toFixed(1)
-  : "No ratings yet"}/5
-
-</p>
-
+                  {list.averageRating !== undefined && list.averageRating >= 0
+                    ? list.averageRating.toFixed(1)
+                    : "No ratings yet"}/5
+                </p>
               </div>
               <button
                 onClick={() => setExpandedList(expandedList === list._id ? null : list._id)}
@@ -156,10 +131,35 @@ const PublicLists = () => {
                   <h4 className="font-semibold">Destinations:</h4>
                   {list.destinations && list.destinations.map((dest, index) => (
                     <div key={dest._id || index} className="border-l-2 border-blue-500 pl-3">
-                      <p className="font-medium">{dest.name || dest.Destination}</p>
-                      <p className="text-sm text-gray-600">
-                        {dest.region || dest.Region}, {dest.country || dest.Country}
-                      </p>
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="font-medium">{dest.name || dest.Destination}</p>
+                          <p className="text-sm text-gray-600">
+                            {dest.region || dest.Region}, {dest.country || dest.Country}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() =>
+                            setExpandedDestination(expandedDestination === dest._id ? null : dest._id)
+                          }
+                          className="text-sm text-blue-500 underline"
+                        >
+                          {expandedDestination === dest._id ? "Hide Details" : "Show Details"}
+                        </button>
+                      </div>
+
+                      {expandedDestination === dest._id && (
+                        <div className="mt-2 text-sm text-gray-700">
+                         {Object.entries(dest)
+                          .filter(([key]) => key !== "_id" && key !== "__v")
+                          .map(([key, value]) => (
+                          <p key={key}>
+                          <strong>{key}:</strong> {value}
+                            </p>
+                          ))}
+
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

@@ -45,7 +45,7 @@ router.get("/lists", verifyToken, async (req, res) => {
     }
 });
 
-// Create new list
+
 router.post(
     "/lists",
     verifyToken,

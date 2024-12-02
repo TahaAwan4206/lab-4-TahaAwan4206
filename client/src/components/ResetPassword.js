@@ -9,29 +9,34 @@ const ResetPassword = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleResetPassword = async (e) => {
     e.preventDefault();
     setMessage("");
     setError("");
+    setLoading(true);
 
     if (newPassword.trim() !== confirmPassword.trim()) {
       setError("Passwords do not match. Please try again.");
+      setLoading(false);
       return;
     }
 
     try {
-      await axios.post(
+      const response = await axios.post(
         `http://localhost:3000/auth/reset-password/${token}`,
         { newPassword: newPassword.trim() }
       );
-      setMessage("Password reset successful. Redirecting to login...");
+      setMessage(response.data.message);
       setTimeout(() => {
         navigate("/login");
       }, 3000);
     } catch (err) {
       console.error("Password Reset Error:", err.response || err);
       setError(err.response?.data?.error || "An error occurred. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -74,8 +79,9 @@ const ResetPassword = () => {
         <button
           type="submit"
           className="w-full rounded bg-blue-500 p-2 text-white hover:bg-blue-600"
+          disabled={loading}
         >
-          Reset Password
+          {loading ? "Resetting..." : "Reset Password"}
         </button>
       </form>
     </div>

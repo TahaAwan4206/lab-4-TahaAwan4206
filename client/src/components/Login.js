@@ -29,7 +29,7 @@ const Login = ({ onLogin }) => {
         return;
       }
 
-      // Send login request
+     
       const response = await axios.post("http://localhost:3000/auth/login", {
         email,
         password,
@@ -37,11 +37,11 @@ const Login = ({ onLogin }) => {
 
       const { token, user } = response.data;
 
-      // Store token and user info
+  
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
 
-      // Call onLogin to update App state
+     
       onLogin(user, token);
 
       navigate("/dashboard");

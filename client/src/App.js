@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate, Link } from "react-router-dom";
 import axios from "axios";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
 import Home from "./components/Home";
@@ -22,42 +21,36 @@ import ProtectedRoute from "./components/ProtectedRoute";
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    checkAuthStatus();
-  }, []);
-
-  const checkAuthStatus = async () => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      try {
-        const response = await axios.get("http://localhost:3000/api/secure/user", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        // Make sure to set both user and authentication state
-        setUser(response.data);
-        setIsAuthenticated(true);
-      } catch (error) {
-        console.error("Auth check failed:", error);
-        // Clear everything on auth failure
-        localStorage.removeItem("token");
-        setUser(null);
-        setIsAuthenticated(false);
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      // No token found
-      setUser(null);
-      setIsAuthenticated(false);
-      setLoading(false);
-    }
+  const handleLogin = (userData, token) => {
+    localStorage.setItem("token", token);
+    localStorage.setItem("user", JSON.stringify(userData));
+    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    setUser(userData);
+    setIsAuthenticated(true);
   };
 
-  if (loading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
-  }
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    delete axios.defaults.headers.common["Authorization"];
+    setUser(null);
+    setIsAuthenticated(false);
+  };
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const storedUser = localStorage.getItem("user");
+
+    if (token && storedUser) {
+      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      setUser(JSON.parse(storedUser));
+      setIsAuthenticated(true);
+    } else {
+      setUser(null);
+      setIsAuthenticated(false);
+    }
+  }, []);
 
   return (
     <Router>
@@ -65,22 +58,27 @@ function App() {
         <Navbar
           isAuthenticated={isAuthenticated}
           user={user}
-          setIsAuthenticated={setIsAuthenticated}
-          setUser={setUser}
+          onLogout={handleLogout}
         />
         <main className="flex-grow bg-gray-100">
           <Routes>
-            <Route
-              path="/Home"
-              element={<Home isAuthenticated={isAuthenticated} user={user} />}
-            />
             <Route
               path="/"
               element={
                 isAuthenticated ? (
                   <Navigate to="/dashboard" />
                 ) : (
-                  <Login setIsAuthenticated={setIsAuthenticated} setUser={setUser} />
+                  <Home onLogin={handleLogin} />
+                )
+              }
+            />
+            <Route
+              path="/login"
+              element={
+                isAuthenticated ? (
+                  <Navigate to="/dashboard" />
+                ) : (
+                  <Login onLogin={handleLogin} />
                 )
               }
             />
@@ -133,22 +131,20 @@ function App() {
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/acceptable-use" element={<AcceptableUsePolicy />} />
             <Route path="/dmca-policy" element={<DMCANotice />} />
-            {/* Optional: Redirect unknown routes to Home or a 404 component */}
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </main>
-        {/* Footer with Links */}
         <footer className="bg-gray-800 text-white p-4">
           <div className="container mx-auto flex justify-center space-x-6">
-            <Link to="/privacy-policy" className="hover:underline">
+            <a href="/privacy-policy" className="hover:underline">
               Privacy Policy
-            </Link>
-            <Link to="/acceptable-use" className="hover:underline">
+            </a>
+            <a href="/acceptable-use" className="hover:underline">
               Acceptable Use
-            </Link>
-            <Link to="/dmca-policy" className="hover:underline">
+            </a>
+            <a href="/dmca-policy" className="hover:underline">
               DMCA Notice
-            </Link>
+            </a>
           </div>
         </footer>
       </div>

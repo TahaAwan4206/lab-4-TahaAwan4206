@@ -12,20 +12,20 @@ const Signup = () => {
   const navigate = useNavigate();
 
   const validateForm = () => {
-    // Username validation
+  
     if (!username.match(/^[A-Za-z\u00C0-\u017F\s]*$/)) {
       setError("Username can only contain letters and spaces");
       return false;
     }
 
-    // Email validation
+ 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       setError("Please enter a valid email address");
       return false;
     }
 
-    // Password validation
+  
     if (password.length < 6) {
       setError("Password must be at least 6 characters long");
       return false;
@@ -44,7 +44,7 @@ const Signup = () => {
     setError("");
     setMessage("");
 
-    // Client-side validation
+   
     if (!validateForm()) {
       return;
     }
