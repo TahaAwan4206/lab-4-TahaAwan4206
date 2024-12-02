@@ -1,0 +1,77 @@
+commit b4b01e0ac95f8d8cc318109069f8dd6297c43dd7
+Author: TahaAwan4206 <tahaawan4206@gmail.com>
+Date:   Sun Dec 1 20:52:46 2024 -0500
+
+    final touches and tweaks
+
+commit b85f6d30541724b737a1c8adbfc04909eb250a8f
+Author: TahaAwan4206 <tahaawan4206@gmail.com>
+Date:   Sun Dec 1 20:06:30 2024 -0500
+
+    finishing touches and global styling
+
+commit b8caf51086288541dca4ba90abaac0876a6f0b76
+Author: TahaAwan4206 <tahaawan4206@gmail.com>
+Date:   Sun Dec 1 19:51:27 2024 -0500
+
+    finished project with fully functional components
+
+commit af12eae8bf45cffcdc3a96297849d8e829dceb81
+Author: TahaAwan4206 <tahaawan4206@gmail.com>
+Date:   Sun Dec 1 16:37:06 2024 -0500
+
+    finished project with implemented frontend
+
+commit 6be2556f47416938f714fa8320cf98b6b479bf2c
+Author: TahaAwan4206 <tahaawan4206@gmail.com>
+Date:   Fri Nov 29 18:06:39 2024 -0500
+
+    progress on frontend implementation
+
+commit 556072a546f65a00be57b6362abea695e0bae9bb
+Author: TahaAwan4206 <tahaawan4206@gmail.com>
+Date:   Thu Nov 28 04:31:17 2024 -0500
+
+    Complete implementation of login-related features
+
+commit 54b5dbc162c56e46a1fb5d89ed39342f72901b4d
+Author: TahaAwan4206 <tahaawan4206@gmail.com>
+Date:   Sun Nov 17 22:26:26 2024 -0500
+
+    Initialize React project and integrate Tailwind CSS
+
+commit 47fb52aa9d676044015ef9aa8057b0cbc96911f8
+Author: TahaAwan4206 <tahaawan4206@gmail.com>
+Date:   Sun Nov 17 19:11:19 2024 -0500
+
+    Implemented backend input validation
+
+commit b6fb374f39b013a0f893e95841600e5f5cb71afd
+Author: TahaAwan4206 <tahaawan4206@gmail.com>
+Date:   Sun Nov 17 15:07:32 2024 -0500
+
+    some additional backend functionality to meet requirements
+
+commit e97fb70e3d8a93048a6f3f42920bd10da89563c7
+Author: TahaAwan4206 <tahaawan4206@gmail.com>
+Date:   Sun Nov 17 04:19:39 2024 -0500
+
+    Implemented backend functionality with JWT authentication and MongoDB
+
+commit c90d343dd41c30c5ea8d9192340890ce024d8b51
+Author: TahaAwan4206 <tahaawan4206@gmail.com>
+Date:   Sat Nov 16 01:57:23 2024 -0500
+
+    Refactored MongoDB integration with models for destinations and lists; removed file-based storage and prepared for dynamic list management.
+
+commit 70f066ddf35c84d08470c32855593411f9bdc168
+Author: TahaAwan4206 <tahaawan4206@gmail.com>
+Date:   Fri Nov 15 18:43:18 2024 -0500
+
+    Initial commit
+
+commit ee4a23e57318e3f0731160c1bb115ffb7c54e069
+Author: github-classroom[bot] <66690702+github-classroom[bot]@users.noreply.github.com>
+Date:   Sun Nov 3 23:57:54 2024 +0000
+
+    Initial commit
