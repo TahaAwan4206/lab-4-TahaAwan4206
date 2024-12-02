@@ -1,3 +1,43 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+body {
+    @apply bg-gray-50 text-gray-900 font-sans;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    @apply font-bold text-gray-800;
+}
+
+a {
+    @apply text-primary hover:text-blue-700;
+}
+
+button {
+    @apply rounded-lg shadow-md hover:shadow-lg transition duration-200 focus:outline-none;
+}
+
+input, textarea {
+    @apply border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary;
+}
+
+.card {
+    @apply bg-white rounded-lg shadow-lg p-4 hover:shadow-xl transition;
+}
+
+.alert {
+    @apply rounded-lg p-4 text-white font-medium;
+}
+.alert-success {
+    @apply bg-success;
+}
+.alert-danger {
+    @apply bg-danger;
+}
+.alert-warning {
+    @apply bg-yellow-400;
+}
+.alert-info {
+    @apply bg-primary;
+}
