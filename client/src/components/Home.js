@@ -25,7 +25,7 @@ const Home = ({ onLogin }) => {
         return;
       }
       const response = await axios.get(
-        `http://localhost:3000/api/open/destinations/search?query=${encodeURIComponent(
+        `${process.env.REACT_APP_BACKEND_URL}/api/open/destinations/search?query=${encodeURIComponent(
           searchTerm.trim()
         )}`
       );

@@ -14,7 +14,7 @@ const VerifyEmail = () => {
       try {
         setLoading(true);
    
-        const response = await axios.get(`http://localhost:3000/auth/verify/${token}`);
+        const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/auth/verify/${token}`);
         setMessage(response.data.message);
 
         setTimeout(() => navigate("/login"), 3000);

@@ -12,7 +12,7 @@ const UpdatePassword = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.put(
-        "http://localhost:3000/api/secure/update-password",
+        `${process.env.REACT_APP_BACKEND_URL}/api/secure/update-password`,
         { currentPassword, newPassword },
         { headers: { Authorization: `Bearer ${token}` } }
       );

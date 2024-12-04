@@ -16,10 +16,10 @@ const AdminDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       const [usersResponse, reviewsResponse] = await Promise.all([
-        axios.get('http://localhost:3000/api/admin/users', {
+        axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/admin/users`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
-        axios.get('http://localhost:3000/api/admin/reviews', {
+        axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/admin/reviews`, {
           headers: { Authorization: `Bearer ${token}` }
         })
       ]);
@@ -36,7 +36,7 @@ const AdminDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.put(
-        `http://localhost:3000/api/admin/users/${userId}/${action}`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/admin/users/${userId}/${action}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -60,7 +60,7 @@ const AdminDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.put(
-        `http://localhost:3000/api/admin/reviews/${reviewId}/${action}`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/admin/reviews/${reviewId}/${action}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -84,7 +84,7 @@ const AdminDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.put(
-        `http://localhost:3000/api/admin/users/${userId}/grant-admin`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/admin/users/${userId}/grant-admin`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );

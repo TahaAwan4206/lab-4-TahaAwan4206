@@ -52,7 +52,7 @@ const Signup = () => {
     setIsLoading(true);
 
     try {
-      const response = await axios.post("http://localhost:3000/auth/signup", {
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/auth/signup`, {
         username: username.trim(),
         email: email.toLowerCase().trim(),
         password,

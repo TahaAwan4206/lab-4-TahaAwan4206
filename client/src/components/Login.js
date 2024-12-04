@@ -30,7 +30,7 @@ const Login = ({ onLogin }) => {
       }
 
      
-      const response = await axios.post("http://localhost:3000/auth/login", {
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/auth/login`, {
         email,
         password,
       });
@@ -74,7 +74,7 @@ const Login = ({ onLogin }) => {
 
   const handleResendVerification = async (email) => {
     try {
-      await axios.post("http://localhost:3000/auth/resend-verification", {
+      await axios.post(`${process.env.REACT_APP_BACKEND_URL}/auth/resend-verification`, {
         email,
       });
       setError("Verification email sent. Please check your inbox.");

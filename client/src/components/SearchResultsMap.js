@@ -36,7 +36,7 @@ function App() {
         const parsedUser = JSON.parse(storedUser);
 
       
-        const response = await axios.get("http://localhost:3000/api/secure/user", {
+        const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/secure/user`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 

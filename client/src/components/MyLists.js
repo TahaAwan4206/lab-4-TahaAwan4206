@@ -141,7 +141,7 @@ const MyLists = () => {
   const fetchLists = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get("http://localhost:3000/api/secure/lists", {
+      const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/secure/lists`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -187,7 +187,7 @@ const MyLists = () => {
 
       const token = localStorage.getItem("token");
       const response = await axios.post(
-        "http://localhost:3000/api/secure/lists",
+        `${process.env.REACT_APP_BACKEND_URL}/api/secure/lists`,
         newList,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -224,7 +224,7 @@ const MyLists = () => {
       };
 
       const response = await axios.put(
-        `http://localhost:3000/api/secure/lists/${id}`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/secure/lists/${id}`,
         updateData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -259,7 +259,7 @@ const MyLists = () => {
       }
 
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:3000/api/secure/lists/${id}`, {
+      await axios.delete(`${process.env.REACT_APP_BACKEND_URL}/api/secure/lists/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -275,7 +275,7 @@ const MyLists = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.put(
-        `http://localhost:3000/api/secure/lists/${list._id}`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/secure/lists/${list._id}`,
         { visibility: !list.visibility },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -306,7 +306,7 @@ const MyLists = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.delete(
-        `http://localhost:3000/api/secure/lists/${listId}/destinations/${destinationId}`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/secure/lists/${listId}/destinations/${destinationId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }

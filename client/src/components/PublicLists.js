@@ -19,7 +19,7 @@ const PublicLists = () => {
     setLoading(true);
     setError("");
     try {
-      const response = await axios.get("http://localhost:3000/api/open/public-lists", {
+      const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/open/public-lists`, {
         params: {
           limit: limit,
         },
@@ -61,12 +61,12 @@ const PublicLists = () => {
       }
 
       await axios.post(
-        `http://localhost:3000/api/secure/lists/${listId}/reviews`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/secure/lists/${listId}/reviews`,
         newReview,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      const updatedListResponse = await axios.get(`http://localhost:3000/api/open/public-lists/${listId}`);
+      const updatedListResponse = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/open/public-lists/${listId}`);
       
       const visibleReviews = updatedListResponse.data.reviews?.filter(review => !review.isHidden) || [];
       const averageRating =

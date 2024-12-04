@@ -29,7 +29,7 @@ const Dashboard = ({ user, setIsAuthenticated, setUser }) => {
         return;
       }
 
-      const response = await axios.get("http://localhost:3000/api/secure/lists", {
+      const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/secure/lists`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUserLists(response.data);
@@ -75,7 +75,7 @@ const Dashboard = ({ user, setIsAuthenticated, setUser }) => {
       }
 
       const response = await axios.get(
-        `http://localhost:3000/api/open/destinations/search`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/open/destinations/search`,
         {
           params: params,
         }
@@ -105,7 +105,7 @@ const Dashboard = ({ user, setIsAuthenticated, setUser }) => {
       const token = localStorage.getItem("token");
 
       const response = await axios.post(
-        `http://localhost:3000/api/secure/lists/${selectedList}/destinations`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/secure/lists/${selectedList}/destinations`,
         { destinationId },
         {
           headers: { Authorization: `Bearer ${token}` },
