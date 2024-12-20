@@ -83,12 +83,15 @@ const Dashboard = ({ user, setIsAuthenticated, setUser }) => {
 
       if (response.data.length === 0) {
         setError("No destinations found. Please try a different query.");
+        setSearchResults([]);
       } else {
         setSearchResults(response.data);
+        setError("");
       }
     } catch (error) {
       console.error("Error searching destinations:", error);
       setError("Search failed. Please try again.");
+      setSearchResults([]);
     }
   };
 
@@ -165,6 +168,12 @@ const Dashboard = ({ user, setIsAuthenticated, setUser }) => {
         >
           Search
         </button>
+
+        {error && <p className="text-red-500 mt-2">{error}</p>}
+        {searchResults.length === 0 && !error && (
+          <p className="text-gray-500 mt-4">No results to display.</p>
+        )}
+
         <div className="grid grid-cols-2 gap-4 mt-4">
           {searchResults.map((destination, index) => (
             <div
@@ -260,7 +269,6 @@ const Dashboard = ({ user, setIsAuthenticated, setUser }) => {
             </div>
           ))}
         </div>
-        {error && <p className="text-red-500 mt-2">{error}</p>}
       </div>
 
       {mapData.visible && (
@@ -306,7 +314,7 @@ const Dashboard = ({ user, setIsAuthenticated, setUser }) => {
               Close
             </button>
             <MapContainer
-              center={mapData.coordinates}
+              center={mapData.coordinates || [0, 0]}
               zoom={13}
               style={{ height: "100%", width: "100%" }}
             >
@@ -314,9 +322,11 @@ const Dashboard = ({ user, setIsAuthenticated, setUser }) => {
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 attribution="&copy; OpenStreetMap contributors"
               />
-              <Marker position={mapData.coordinates}>
-                <Popup>{mapData.name}</Popup>
-              </Marker>
+              {mapData.coordinates && (
+                <Marker position={mapData.coordinates}>
+                  <Popup>{mapData.name}</Popup>
+                </Marker>
+              )}
             </MapContainer>
           </div>
         </div>

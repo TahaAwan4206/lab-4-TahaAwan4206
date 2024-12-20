@@ -1,5 +1,4 @@
 const express = require("express");
-const { query, param, validationResult } = require("express-validator");
 const List = require("../models/List");
 const Review = require("../models/Review");
 const Destination = require("../models/Destination");
@@ -22,7 +21,7 @@ const levenshteinDistance = (a, b) => {
       const cost = a[i - 1] === b[j - 1] ? 0 : 1;
       dp[i][j] = Math.min(
         dp[i - 1][j] + 1,       
-        dp[i][j - 1] + 1,      
+        dp[i][j - 1] + 1,       
         dp[i - 1][j - 1] + cost 
       );
     }
@@ -112,107 +111,107 @@ const calculateMatchScore = (query, destination) => {
   return score;
 };
 
-
 router.get("/public-lists", async (req, res) => {
-    try {
-        const { sort, country, region, limit = 10 } = req.query;
-        
-        let query = { visibility: true };
+  try {
+    const { sort, country, region, limit = 10 } = req.query;
 
-        if (country) {
-            query['destinations.Country'] = new RegExp('^' + country, 'i');
-        }
-        if (region) {
-            query['destinations.Region'] = new RegExp('^' + region, 'i');
-        }
+    let query = { visibility: true };
 
-        let sortQuery = {};
-        switch (sort) {
-            case 'rating':
-                sortQuery = { averageRating: -1 };
-                break;
-            case 'destinations':
-                sortQuery = { 'destinations.length': -1 };
-                break;
-            default:
-                sortQuery = { updatedAt: -1 };
-        }
-
-        const lists = await List.find(query)
-            .sort(sortQuery)
-            .limit(parseInt(limit))
-            .populate('owner', 'username')
-            .populate({
-                path: 'reviews',
-                match: { isHidden: false },
-                populate: { path: 'user', select: 'username' }
-            })
-            .populate('destinations');
-
-        const listsWithRatings = lists.map(list => {
-            const listObj = list.toObject();
-            const visibleReviews = listObj.reviews || [];
-            const averageRating = visibleReviews.length > 0
-                ? visibleReviews.reduce((acc, review) => acc + review.rating, 0) / visibleReviews.length
-                : 0;
-            
-            return {
-                ...listObj,
-                averageRating: Number(averageRating.toFixed(1)),
-                reviewCount: visibleReviews.length
-            };
-        });
-
-        res.json(listsWithRatings);
-    } catch (err) {
-        console.error("Error fetching public lists:", err);
-        res.status(500).json({ error: "Failed to fetch public lists." });
+    if (country) {
+      query['destinations.Country'] = new RegExp('^' + country, 'i');
     }
+    if (region) {
+      query['destinations.Region'] = new RegExp('^' + region, 'i');
+    }
+
+    let sortQuery = {};
+    switch (sort) {
+      case 'rating':
+        sortQuery = { averageRating: -1 };
+        break;
+      case 'destinations':
+        sortQuery = { 'destinations.length': -1 };
+        break;
+      default:
+        sortQuery = { updatedAt: -1 };
+    }
+
+    const lists = await List.find(query)
+      .sort(sortQuery)
+      .limit(parseInt(limit))
+      .populate('owner', 'username')
+      .populate({
+        path: 'reviews',
+        match: { isHidden: false },
+        populate: { path: 'user', select: 'username' }
+      })
+      .populate('destinations');
+
+    const listsWithRatings = lists.map(list => {
+      const listObj = list.toObject();
+      const visibleReviews = listObj.reviews || [];
+      const averageRating = visibleReviews.length > 0
+        ? visibleReviews.reduce((acc, review) => acc + review.rating, 0) / visibleReviews.length
+        : 0;
+
+      return {
+        ...listObj,
+        averageRating: Number(averageRating.toFixed(1)),
+        reviewCount: visibleReviews.length
+      };
+    });
+
+    res.json(listsWithRatings);
+  } catch (err) {
+    console.error("Error fetching public lists:", err);
+    res.status(500).json({ error: "Failed to fetch public lists." });
+  }
 });
 
 router.get("/destinations/search", async (req, res) => {
-    const { destination, country, region } = req.query;
-  
-    try {
-      const allDestinations = await Destination.find();
-      let matchedDestinations = allDestinations;
-  
-      if (destination) {
-        matchedDestinations = performSoftSearch(destination, matchedDestinations);
-      }
-  
-      if (country) {
-        matchedDestinations = performSoftSearch(
-          country,
-          matchedDestinations,
-          "Country"
-        );
-      }
-  
-      if (region) {
-        matchedDestinations = performSoftSearch(
-          region,
-          matchedDestinations,
-          "Region"
-        );
-      }
-  
-      const transformedDestinations = matchedDestinations.slice(0, 20).map((dest) => ({
-        id: dest._id,
-        name: dest.Destination,
-        country: dest.Country,
-        region: dest.Region,
-        latitude: dest.Latitude,
-        longitude: dest.Longitude,
-        currency: dest.Currency,
-        language: dest.Language,
-      }));
-  
-      res.json(transformedDestinations);
-    } catch (err) {
-      console.error("Error performing search:", err);
-      res.status(500).json({ error: "Failed to perform search." });
+  const { destination, country, region } = req.query;
+
+  try {
+    const allDestinations = await Destination.find();
+    let matchedDestinations = allDestinations;
+
+    if (destination) {
+     
+      matchedDestinations = performSoftSearch(destination, matchedDestinations, 'Destination');
     }
-  });
+
+    if (country) {
+      matchedDestinations = performSoftSearch(
+        country,
+        matchedDestinations,
+        "Country"
+      );
+    }
+
+    if (region) {
+      matchedDestinations = performSoftSearch(
+        region,
+        matchedDestinations,
+        "Region"
+      );
+    }
+
+    const transformedDestinations = matchedDestinations.map((dest) => ({
+      id: dest._id,
+      name: dest.Destination,
+      country: dest.Country,
+      region: dest.Region,
+      latitude: dest.Latitude,
+      longitude: dest.Longitude,
+      currency: dest.Currency,
+      language: dest.Language,
+    }));
+
+    res.json(transformedDestinations);
+  } catch (err) {
+    console.error("Error performing search:", err);
+    res.status(500).json({ error: "Failed to perform search." });
+  }
+});
 
 module.exports = router;
